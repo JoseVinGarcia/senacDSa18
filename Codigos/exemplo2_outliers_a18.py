@@ -10,9 +10,11 @@
 
 import pandas as pd
 import numpy as np
+import os
 
 # Obter dados
 try:
+    os.system("cls")
     print("Obtendo dados...")
     ENDERECO_DADOS="https://www.ispdados.rj.gov.br/Arquivos/BaseDPEvolucaoMensalCisp.csv"
     
@@ -45,7 +47,7 @@ try:
     mediana_roubo_veiculo = np.median(array_roubo_veiculo)
     dist_roubo_veiculo = abs((media_roubo_veiculo-mediana_roubo_veiculo)/mediana_roubo_veiculo)
 
-    print("\nMedidas de tendência central:")
+    print("\nMEDIDAS DE TENDÊNCIA CENTRAL:")
     print(f"Média de roubo de veículo: {media_roubo_veiculo}")
     print(f"Mediana de roubo de veículo: {mediana_roubo_veiculo}")
     print(f"Distância entre média e mediana: {dist_roubo_veiculo}%")
@@ -56,10 +58,51 @@ try:
     # amplitude: quanto mais proxima de 0 maior homogeneidade, quanto mais proximo do maximo maior a dispersao
     amplitude = maximo - minimo
 
-    print("\nMedidas de dispersão:")
+    print("\nMEDIDAS DE DISPERSÃO:")
     print(f"Máximo: {maximo}")
     print(f"Mínimo: {minimo}")
     print(f"Amplitude total: {amplitude}")
+
+    # Quartis
+    q1 = np.quantile(array_roubo_veiculo, 0.25, method="weibull")
+    q2 = np.quantile(array_roubo_veiculo, 0.50, method="weibull")
+    q3 = np.quantile(array_roubo_veiculo, 0.75, method="weibull")
+
+    # iqr nao sofre interferencia dos outliers, quanto mais proximo de 0 mais homogeneo, quanto mais proximo de q3 mais heterogeneo
+    iqr = q3 - q1
+    # vai identificar os outliers acima de q3
+    limite_superior = q3 + (1.5 * iqr)
+    limite_inferior = q1 - (1.5 * iqr)
+
+    # ! Para existir outliers inferiores o limite inferior precisa ser maior que o minimo da distribuicao
+    # ! Caso contrario quer dizer que os dados tendem a manter um padrao
+    # ! Mesma coisa para os outliers superiores, o limite superior precisa ser menor que o maximo
+
+    print("\nMEDIDAS DE POSIÇÃO:")
+    print(f"Mínimo: {minimo}")
+    print(f"Limite inferior: {limite_inferior}")
+    print(f"Q1: {q1}")
+    print(f"Q2: {q2}")
+    print(f"Q3: {q3}")
+    print(f"IQR: {iqr}")
+    print(f"Limite superior: {limite_superior}")
+    print(f"Máximo: {maximo}")
+
+    # RESPONDENDO O ENUNCIADO, FILTRANDO OS OUTLIERS
+    df_roubo_veiculo_out_inf = df_roubo_veiculo[df_roubo_veiculo["roubo_veiculo"] < limite_inferior]
+    df_roubo_veiculo_out_sup = df_roubo_veiculo[df_roubo_veiculo["roubo_veiculo"] > limite_superior]
+
+    print("\nMUNICÍPIOS COM OUTLIERS INFERIORES:")
+    if len(df_roubo_veiculo_out_inf) == 0:
+        print("Não existem outliers inferiores!")
+    else:
+        print(df_roubo_veiculo_out_inf.sort_values(by="roubo_veiculo", ascending=True))
+
+    print("\nMUNICÍPIOS COM OUTLIERS SUPERIORES:")
+    if len(df_roubo_veiculo_out_sup) == 0:
+        print("Não existem outliers superiores!")
+    else:
+        print(df_roubo_veiculo_out_sup.sort_values(by="roubo_veiculo", ascending=False))
 
 except Exception as e:
     print(f"Erro ao obter informações sobre padrão de roubo de veículos: {e}")
